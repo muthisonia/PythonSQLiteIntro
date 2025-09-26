@@ -1,6 +1,4 @@
--- This is used to enable the enforcement of foreign key
-PRAGMA foreign_keys = ON;
-
+-- This file containts the SQL queries for tables creation
 -- 1. DESTINATION TABLE
 CREATE TABLE Destination (
   destinationID INTEGER PRIMARY KEY,
@@ -19,7 +17,6 @@ CREATE TABLE Pilot (
   lastName    TEXT NOT NULL,
   licenseNo   TEXT UNIQUE NOT NULL,
   dateOfBirth DATE,
-  rank        TEXT NOT NULL, -- e.g. Captain, Co-Captain
   email       TEXT UNIQUE,
   hireDate    DATE NOT NULL
 );
