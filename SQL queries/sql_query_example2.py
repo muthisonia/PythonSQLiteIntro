@@ -1,17 +1,17 @@
 import sqlite3
 from pathlib import Path
 
-# Path to your database 
+# path to the database
 db_path = Path(__file__).parent.parent / "flight_management.db"
 
-# Connect to the database
+# connect to the database
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Enable foreign key constraints
+# enable foreign key constraints
 cursor.execute("PRAGMA foreign_keys = ON;")
 
-#  Retrieve all flights departing between 8AM and 12AM
+#  retrieve all flights departing between 8AM and 12AM
 print("\n=== Scheduled flights departing between 08:00 and 12:00 ===")
 cursor.execute("""
 SELECT 
@@ -36,5 +36,5 @@ else:
         print(" | ".join(str(x) for x in r))
     print()
 
-# Close connection
+# close connection
 conn.close()

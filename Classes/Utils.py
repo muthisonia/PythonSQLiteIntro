@@ -1,22 +1,14 @@
-import sqlite3
 from datetime import datetime
 from pathlib import Path
-from textwrap import dedent
 
 
 # Path to your database 
 DB_PATH = Path(__file__).parent.parent / "flight_management.db"
 
-# ==============================================================================
-# Utility Class
-# Contains helper methods for various actions such as printing or input parsing.
-# ==============================================================================
 class Utils:
     @staticmethod
     def header(title: str): 
-        """
-        Provides better headers.
-        """
+        """Print a formatted header with a centered title."""
         bar = "=" * 70
         print("\n" + bar)
         print(title.upper().center(70))
@@ -24,9 +16,7 @@ class Utils:
 
     @staticmethod
     def print_rows(rows):
-        """
-        Formats and prints query results in a nicer table layout.
-        """
+        """Display query results in a formatted table layout."""
         if not rows:
             print("No results.\n")
             return
@@ -40,29 +30,21 @@ class Utils:
 
     @staticmethod
     def input_or_blank(prompt):
-        """
-        Return None if user hits Enter (useful for optional updates).
-        """
+        """Return user input or None if left blank."""
         s = input(prompt).strip()
         return s if s != "" else None
 
     @staticmethod
     def parse_int_or_none(s):
-        """
-        Convert to int or return None when not valid.
-        """
+        """Convert string to int or return None if invalid."""
         try:
             return int(s) if s is not None else None
         except ValueError:
             return None
         
-
     @staticmethod
     def prompt_valid_date(prompt_msg: str) -> str:
-        """
-        Prompt until user enters a valid date in YYYY-MM-DD format.
-        Returns normalized string 'YYYY-MM-DD'.
-        """
+        """Prompt until user enters a valid date in YYYY-MM-DD format."""
         while True:
             s = input(prompt_msg).strip()
             try:
@@ -88,9 +70,7 @@ class Utils:
 
     @staticmethod
     def prompt_valid_datetime_or_blank(prompt_msg: str, allow_past: bool = True) -> str | None:
-        """
-        Like prompt_valid_datetime, but Enter keeps current value (returns None).
-        """
+        """Like prompt_valid_datetime, but Enter keeps current value (returns None)."""
         while True:
             s = input(prompt_msg).strip()
             if s == "":
@@ -106,10 +86,7 @@ class Utils:
 
     @staticmethod
     def prompt_valid_status_or_blank(prompt_msg: str) -> str | None:
-        """
-        Prompt for a valid status (Scheduled/Delayed/Cancelled).
-        Enter keeps current value (returns None).
-        """
+        """Prompt for a valid status (Scheduled/Delayed/Cancelled)."""
         valid = {"Scheduled", "Delayed", "Cancelled"}
         while True:
             s = input(prompt_msg).strip()
@@ -131,7 +108,7 @@ class Utils:
 
     @staticmethod
     def prompt_unique_flight_no(db):
-        """Prompt until the user enters a flight number not already in the DB."""
+        """Prompt until the user enters a flight number not already in the db."""
         while True:
             flight_no = input("Flight number (e.g. EY999): ").strip().upper()
             if not flight_no:
@@ -144,7 +121,7 @@ class Utils:
     
     @staticmethod
     def prompt_existing_flight_no(db):
-        """Prompt until the user enters a flight number that exists in the DB."""
+        """Prompt until the user enters a flight number that exists in the db."""
         while True:
             flight_no = input("Flight number (e.g., EY101): ").strip().upper()
             if not flight_no:
@@ -156,8 +133,6 @@ class Utils:
                 continue
             return flight_no
 
-
-    # helper lookup destination id by iata code 
     @staticmethod
     def get_destination_id_by_iata(db, iata: str):
         """Return destinationID given an IATA code, or None if not found."""

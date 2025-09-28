@@ -1,17 +1,17 @@
 import sqlite3
 from pathlib import Path
 
-# Path to the existing database
+# path to the database
 db_path = Path(__file__).parent.parent / "flight_management.db"
 
-# Connect to the database
+# connect to the database
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Enable foreign keys
+# enable foreign keys
 cursor.execute("PRAGMA foreign_keys = ON;")
 
-# Wrap inserts in a transaction
+# wrap inserts in a transaction
 cursor.executescript("""
 BEGIN TRANSACTION;
 
@@ -153,7 +153,7 @@ INSERT INTO Booking (bookingID, flightID, firstName, lastName, email, seatNo, st
 COMMIT;
 """)
 
-# Save changes
+# save changes
 conn.commit()
 conn.close()
 print("Sample data inserted successfully!")

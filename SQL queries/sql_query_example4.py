@@ -1,17 +1,17 @@
 import sqlite3
 from pathlib import Path
 
-# Path to your database 
+# path to the database
 db_path = Path(__file__).parent.parent / "flight_management.db"
 
-# Connect to the database
+# connect to the database
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Enable foreign key constraints
+# enable foreign key constraints
 cursor.execute("PRAGMA foreign_keys = ON;")
 
-# View current flight assignments for Pilot 1
+# view current flight assignments for pilot 1
 print("\n=== Current Flights Assigned to Pilot 1 (Anna Visser) ===")
 cursor.execute("""
 SELECT 
@@ -40,7 +40,7 @@ else:
     for row in rows:
         print(" | ".join(str(item) for item in row))
 
-# Assign Pilot 1 to Flight 4 (EY104) as Captain
+# assign pilot 1 to flight 4 (EY104) as Captain
 print("\nAssigning Pilot 1 (Anna Visser) to Flight 4 (EY104) as Captain...")
 try:
     cursor.execute("""
@@ -52,7 +52,7 @@ try:
 except sqlite3.IntegrityError as e:
     print(f"Assignment failed: {e}")
 
-# View updated schedule for Pilot 1
+# view updated schedule for pilot 1
 print("\n=== Updated Flights Assigned to Pilot 1 (Anna Visser) ===")
 cursor.execute("""
 SELECT 
@@ -81,5 +81,5 @@ else:
     for row in rows:
         print(" | ".join(str(item) for item in row))
 
-# Close connection
+# close connection
 conn.close()

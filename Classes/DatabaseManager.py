@@ -1,31 +1,22 @@
 import sqlite3
-from datetime import datetime
 from pathlib import Path
-from textwrap import dedent
 
 
-# Path to your database 
+# path to the database
 DB_PATH = Path(__file__).parent.parent / "flight_management.db"
 
-# ======================================================
-# Database Manager Class
-# ======================================================
 class DatabaseManager:
     def __init__(self, db_path=DB_PATH):
         """
-        Initialize a connection to the SQLite database.
-        Enable foreign key constraints.
+        Initialize a database connection and enable foreign key support.
         """
-        # Connect to the database
         self.conn = sqlite3.connect(db_path)
-        # To allow column access by name
         self.conn.row_factory = sqlite3.Row  
-        # Enable foreign keys
         self.conn.execute("PRAGMA foreign_keys = ON;")
 
     def execute(self, sql, params=()):
         """
-        Execute INSERT, UPDATE, DELETE queries and commits the transaction.
+        Run INSERT, UPDATE, or DELETE statements and commit changes.
         """
         cur = self.conn.execute(sql, params)
         self.conn.commit()

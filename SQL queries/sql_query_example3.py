@@ -1,17 +1,17 @@
 import sqlite3
 from pathlib import Path
 
-# Path to your database 
+# path to the database
 db_path = Path(__file__).parent.parent / "flight_management.db"
 
-# Connect to the database
+# connect to the database
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Enable foreign key constraints
+# enable foreign key constraints
 cursor.execute("PRAGMA foreign_keys = ON;")
 
-# Before update
+# show flight details before update
 print("\n=== Before Update: EY102 ===")
 cursor.execute("""
 SELECT 
@@ -32,7 +32,7 @@ else:
     for r in rows:
         print(" | ".join(str(x) for x in r))
 
-# Update: delay by 2 hours and set status Delayed 
+# update: delay by 2 hours and set status to delayed 
 print("\nApplying 2-hour delay and setting status to 'Delayed' for EY102...")
 cursor.execute("""
 UPDATE Flight
@@ -44,7 +44,7 @@ WHERE flightNo = 'EY102';
 """)
 conn.commit()
 
-# After update
+# show flight details after update
 print("=== After Update: EY102 ===")
 cursor.execute("""
 SELECT 
@@ -65,5 +65,5 @@ else:
     for r in rows:
         print(" | ".join(str(x) for x in r))
         
-# Close connection
+# close connection
 conn.close()

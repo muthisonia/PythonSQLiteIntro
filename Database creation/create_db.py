@@ -1,14 +1,14 @@
 import sqlite3
 from pathlib import Path
 
-# Define path to save create the db outside the "Database creation" folder
+# define path to save create the db outside the "Database creation" folder
 db_path = Path(__file__).parent.parent / "flight_management.db"
 
-# Connect to or create the database
+# connect to or create the database
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Read and execute the SQL file with the SQL queries for table creation
+# read and execute the SQL file with the SQL queries for table creation
 sql_file = Path(__file__).parent / "create_db.sql"
 with open(sql_file, "r") as f:
     sql_script = f.read()

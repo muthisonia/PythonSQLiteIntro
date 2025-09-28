@@ -6,7 +6,7 @@ from Classes.DatabaseManager import DatabaseManager
 from Classes.Utils import Utils
 from Classes.IATAValidator import IATAValidator
 
-# Path to your database 
+# path to the database
 DB_PATH = Path(__file__).parent.parent / "flight_management.db"
 
 class FlightManagementApp:
@@ -21,13 +21,13 @@ class FlightManagementApp:
     def add_new_flight(self):
         Utils.header("Add a New Flight")
 
-        #  flight no
+        #  flight no (must be unique)
         flight_no = Utils.prompt_unique_flight_no(self.db)
 
-        # origin iata
+        # prompt for origin iata
         origin_iata = self.iata_validator.prompt_valid_iata("Origin IATA: ")
 
-        # destination iata
+        # prompt for destination iata
         while True:
             dest_iata = self.iata_validator.prompt_valid_iata("Destination IATA: ")
             if dest_iata == origin_iata:
@@ -35,11 +35,11 @@ class FlightManagementApp:
                 continue
             break
 
-        # Look up their corresponding IDs in the Destination table
+        # look up their corresponding IDs in the Destination table
         origin_id = Utils.get_destination_id_by_iata(self.db, origin_iata)
         dest_id   = Utils.get_destination_id_by_iata(self.db, dest_iata)
 
-        # departure and arrival
+        # prompt fot departure and arrival
         departure = Utils.prompt_valid_datetime("Departure (YYYY-MM-DD HH:MM): ")
         dep_dt = datetime.strptime(departure, "%Y-%m-%d %H:%M")
 
@@ -52,8 +52,7 @@ class FlightManagementApp:
                 continue
             break
 
-        
-        # status
+        # prompt for status
         valid_statuses = ["Scheduled", "Delayed", "Cancelled"]
         while True:
             status_input = Utils.input_or_blank("Status [Scheduled/Delayed/Cancelled] (default Scheduled): ")
@@ -67,9 +66,10 @@ class FlightManagementApp:
             status = status_input
             break
 
+        # prompt for aircraft
         aircraft = Utils.input_or_blank("Aircraft: ")
 
-        # Show summary before inserting
+        # show summary before inserting
         print("\nPlease confirm the flight details:")
         print(f"  Flight No:     {flight_no}")
         print(f"  Origin:        {origin_iata}")
@@ -80,7 +80,7 @@ class FlightManagementApp:
         print(f"  Aircraft:      {aircraft or '(none)'}")
         print()
 
-        # Confirm action
+        # confirm action
         while True:
             confirm = input("Do you want to add this flight? (Y/N): ").strip().upper()
             if confirm == "Y":
@@ -91,6 +91,7 @@ class FlightManagementApp:
             else:
                 print("Please enter Y or N.\n")
 
+        # insert into database
         try:
             self.db.execute(dedent("""
                 INSERT INTO Flight (flightNo, originID, destinationID, departure, arrival, status, aircraft, lastUpdate)
@@ -104,7 +105,7 @@ class FlightManagementApp:
     def view_flights_by_criteria(self):
         Utils.header("View Flights by Criteria")
 
-        # filter menu
+        # show filter menu
         print("Choose one or more filters (comma-separated), or press Enter for none:")
         print("  1) Destination IATA")
         print("  2) Origin IATA")
@@ -151,6 +152,7 @@ class FlightManagementApp:
         if 4 in chosen:
             dep_date = Utils.prompt_valid_date("Departure date (YYYY-MM-DD): ")
 
+        # build SQL query dynamically
         base_sql = """
             SELECT 
             f.flightNo, f.status, f.departure, f.arrival,
@@ -199,6 +201,7 @@ class FlightManagementApp:
                 continue
             break
 
+        # display current record
         current = self.db.query(dedent("""
             SELECT f.flightNo, f.status, f.departure, f.arrival, f.aircraft,
                    o.IATA AS origin, d.IATA AS destination, f.lastUpdate
@@ -213,6 +216,7 @@ class FlightManagementApp:
         print("\n")
         Utils.print_rows(current)
 
+        # prompt for updates (blank is you want to keep the existing info)
         print("leave fields blank to keep existing values.\n")
         new_departure = Utils.prompt_valid_datetime_or_blank("New departure (YYYY-MM-DD HH:MM): ", allow_past=False)
         new_arrival   = Utils.prompt_valid_datetime_or_blank("New arrival   (YYYY-MM-DD HH:MM): ", allow_past=False)
@@ -240,6 +244,7 @@ class FlightManagementApp:
             else:
                 print("Please enter Y or N.\n")
 
+        # update record
         try:
             self.db.execute(dedent("""
                 UPDATE Flight
@@ -255,6 +260,7 @@ class FlightManagementApp:
             print(f"Update failed: {e}\n")
             return
 
+        # show updated record
         updated = self.db.query(dedent("""
             SELECT f.flightNo, f.status, f.departure, f.arrival, f.aircraft,
                    o.IATA AS origin, d.IATA AS destination, f.lastUpdate
@@ -269,7 +275,7 @@ class FlightManagementApp:
     def assign_pilot_to_flight(self):
         Utils.header("Assign Pilot to Flight")
 
-        # validate pilot
+        # validate pilot id and fetch pilot name
         while True:
             pilot_id = Utils.parse_int_or_none(Utils.input_or_blank("Pilot ID (e.g., 1): "))
             if pilot_id is None:
@@ -283,7 +289,7 @@ class FlightManagementApp:
             pilot_name = row[0]["name"]
             break
 
-        # validate flight
+        # validate flight number and get flight id
         while True:
             flight_no = input("Flight number (e.g., EY104): ").strip().upper()
             if not flight_no:
@@ -302,7 +308,7 @@ class FlightManagementApp:
                 break
             print("Role must be 'Captain' or 'Co-Captain'. Please try again.\n")
 
-        # if pilot already assigned to this flight in ANY role, prevent double role
+        # if pilot already assigned to this flight in any role, prevent double role
         already_on_flight = self.db.query(
             "SELECT role FROM FlightCrew WHERE pilotID = ? AND flightID = ?;",
             (pilot_id, flight_id)
@@ -325,7 +331,6 @@ class FlightManagementApp:
 
             # replace the current pilot in this role
             print("\nThis flight already has a {0} assigned.".format(role))
-            # fetch current pilot name for a nicer message
             curr = self.db.query("SELECT firstName || ' ' || lastName AS name FROM Pilot WHERE pilotID = ?;",
                                 (current_pilot_id,))
             current_pilot_name = curr[0]["name"] if curr else f"Pilot {current_pilot_id}"
@@ -389,6 +394,7 @@ class FlightManagementApp:
         self._show_pilot_schedule(pilot_id)
 
     def _show_pilot_schedule(self, pilot_id: int):
+        """Fetch and display a pilot’s assigned flights."""
         rows = self.db.query(dedent("""
             SELECT 
               p.pilotID,
@@ -417,6 +423,7 @@ class FlightManagementApp:
         choice = input("Choose: ").strip()
 
         if choice == "1":
+            # show only active destinations
             rows = self.db.query(dedent("""
                 SELECT destinationID, IATA, airportName, city, country, isActive
                 FROM Destination
@@ -427,6 +434,7 @@ class FlightManagementApp:
             return
 
         if choice == "2":
+            # show all destinations
             rows = self.db.query(dedent("""
                 SELECT destinationID, IATA, airportName, city, country, isActive
                 FROM Destination
@@ -437,7 +445,7 @@ class FlightManagementApp:
 
         
         if choice == "3":
-            # pick an existing destination
+            # update isActive flag for a destination
             while True:
                 dest_id = Utils.parse_int_or_none(Utils.input_or_blank("Destination ID to update: "))
                 if dest_id is None:
@@ -453,6 +461,7 @@ class FlightManagementApp:
             Utils.print_rows(current)
             row = current[0]
 
+            # prompt new isActive value
             while True:
                 new_active = Utils.input_or_blank("Set isActive [1=active / 0=inactive]: ")
                 if new_active in ("0", "1"):
@@ -465,13 +474,14 @@ class FlightManagementApp:
                 print("ℹNo change detected (isActive unchanged).")
                 return
 
-            # confirm
+            # confirm update
             print("\nYou are about to update this destination:")
             print(f"  destinationID: {dest_id}")
             print(f"  IATA:          {row['IATA']}")
             print(f"  airportName:   {row['airportName']}")
             print(f"  city/country:  {row['city']}, {row['country']}")
             print(f"  isActive:      {row['isActive']} -> {active_val}")
+
             while True:
                 confirm = input("\nConfirm update? (Y/N): ").strip().upper()
                 if confirm in ("Y", "N"):
@@ -481,6 +491,7 @@ class FlightManagementApp:
                 print("Update cancelled.\n")
                 return
 
+            # perform update
             try:
                 self.db.execute(
                     "UPDATE Destination SET isActive = ? WHERE destinationID = ?;",
@@ -491,6 +502,7 @@ class FlightManagementApp:
                 print(f"Update failed: {e}\n")
                 return
 
+            # show updated record
             updated = self.db.query("SELECT * FROM Destination WHERE destinationID = ?;", (dest_id,))
             Utils.print_rows(updated)
             return
@@ -501,7 +513,7 @@ class FlightManagementApp:
     def check_bookings_for_flight(self):
         Utils.header("Check Bookings for a Flight")
 
-        #  flight no
+        #  get a valid flight no
         flight_no = Utils.prompt_existing_flight_no(self.db)
 
         # get flight details
@@ -517,14 +529,14 @@ class FlightManagementApp:
 
         flight_id = flight["flightID"]
 
-        # total bookings for this flight
+        # get total bookings for this flight
         total_rows = self.db.query(
             "SELECT COUNT(*) AS total_bookings FROM Booking WHERE flightID = ?;",
             (flight_id,)
         )
         total = total_rows[0]["total_bookings"] if total_rows else 0
 
-        # status breakdown (Booked / Checked-in / Cancelled)
+        # get status breakdown (Booked / Checked-in / Cancelled)
         breakdown = self.db.query(dedent("""
             SELECT status, COUNT(*) AS cnt
             FROM Booking
@@ -544,7 +556,7 @@ class FlightManagementApp:
         else:
             print("No bookings found for this flight.\n")
 
-    # Run main menu 
+    # run main menu 
     def run(self):
         try:
             while True:

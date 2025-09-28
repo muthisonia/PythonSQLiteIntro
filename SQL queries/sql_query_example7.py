@@ -1,17 +1,18 @@
 import sqlite3
 from pathlib import Path
 
-# Path to your database 
+# path to the database
 db_path = Path(__file__).parent.parent / "flight_management.db"
 
-# Connect to the database
+# connect to the database
 conn = sqlite3.connect(db_path)
 cursor = conn.cursor()
 
-# Enable foreign key constraints
+# enable foreign key constraints
+cursor.execute("PRAGMA foreign_keys = ON;")
 cursor.execute("PRAGMA foreign_keys = ON;")
 
-#  Get the number of flights assigned to each pilot
+#  get the number of flights assigned to each pilot
 print("\n=== Summary: Number of Flights Assigned to Each Pilot ===")
 cursor.execute("""
 SELECT 
@@ -34,5 +35,5 @@ else:
     for r in rows:
         print(" | ".join(str(x) for x in r))
 
-# Close connection
+# close connection
 conn.close()
