@@ -164,14 +164,14 @@ class FlightManagementApp:
     def view_flights_by_criteria(self):
         Utils.header("View Flights by Criteria")
 
-        # --- Show filter menu ---
+        # filter menu
         print("Choose one or more filters (comma-separated), or press Enter for none:")
         print("  1) Destination IATA")
         print("  2) Origin IATA")
         print("  3) Status (Scheduled / Delayed / Cancelled)")
         print("  4) Departure Date (YYYY-MM-DD)")
 
-        # --- Loop until valid input ---
+        # loop until valid input
         chosen = set()
         while True:
             choice = input("Filters to apply (e.g., 1,3,4): ").strip()
@@ -179,7 +179,6 @@ class FlightManagementApp:
                 # no filters
                 break
 
-            # Split by comma and clean tokens
             tokens = [t.strip() for t in choice.split(",") if t.strip()]
             valid = {"1", "2", "3", "4"}
             invalid_tokens = [t for t in tokens if t not in valid]
@@ -191,11 +190,10 @@ class FlightManagementApp:
                 print("Duplicate numbers detected. Please list each filter only once.\n")
                 continue
 
-            # All good
             chosen = {int(t) for t in tokens}
             break
 
-        # --- Prepare inputs ---
+        # prepare inputs
         dest_iata = origin_iata = status = dep_date = None
 
         if 1 in chosen:
@@ -213,7 +211,6 @@ class FlightManagementApp:
         if 4 in chosen:
             dep_date = Utils.prompt_valid_date("Departure date (YYYY-MM-DD): ")
 
-        # --- Build SQL dynamically ---
         base_sql = """
             SELECT 
             f.flightNo, f.status, f.departure, f.arrival,
@@ -255,7 +252,7 @@ class FlightManagementApp:
             if not flight_no:
                 print("Flight number cannot be empty.\n")
                 continue
-            # Check existence
+            # check existence
             exists = self.db.query("SELECT 1 FROM Flight WHERE flightNo = ?;", (flight_no,))
             if not exists:
                 print(f"Flight '{flight_no}' does not exist. Please try again.\n")
@@ -283,7 +280,7 @@ class FlightManagementApp:
         new_aircraft  = Utils.input_or_blank("New aircraft: ")
 
 
-        # Show summary before inserting
+        # show summary before inserting
         print("\nPlease confirm the flight details:")
         print(f"  Flight No: {flight_no}")
         print(f"  Departure: {new_departure}")
@@ -292,7 +289,7 @@ class FlightManagementApp:
         print(f"  Aircraft:  {new_aircraft}")
         print()
 
-        # Confirm action
+        # confirm action
         while True:
             confirm = input("Do you want to modify flight? (Y/N): ").strip().upper()
             if confirm == "Y":
@@ -332,76 +329,99 @@ class FlightManagementApp:
     def assign_pilot_to_flight(self):
         Utils.header("Assign Pilot to Flight")
 
-        # validate pilot ID
+        # validate pilot
         while True:
             pilot_id = Utils.parse_int_or_none(Utils.input_or_blank("Pilot ID (e.g., 1): "))
             if pilot_id is None:
-                print("Invalid pilot ID.\n")
-                continue
-
-            # check existence in Pilot table
-            pilot_exists = self.db.query("SELECT firstName || ' ' || lastName AS name FROM Pilot WHERE pilotID = ?;", (pilot_id,))
-            if not pilot_exists:
-                print(f"Pilot with ID {pilot_id} not found in database.\n")
-                continue
-
-            pilot_name = pilot_exists[0]["name"]
-            print(f"Found Pilot: {pilot_name}")
+                print("Invalid pilot ID.\n"); continue
+            row = self.db.query(
+                "SELECT firstName || ' ' || lastName AS name FROM Pilot WHERE pilotID = ?;",
+                (pilot_id,)
+            )
+            if not row:
+                print(f"Pilot with ID {pilot_id} not found.\n"); continue
+            pilot_name = row[0]["name"]
             break
 
-        # validate flight number
+        # validate flight
         while True:
             flight_no = input("Flight number (e.g., EY104): ").strip().upper()
             if not flight_no:
-                print("Flight number cannot be empty.\n")
-                continue
-            flight_id = self.get_flight_id_by_flightno(flight_no)
-            if flight_id is None:
-                print(f"Flight '{flight_no}' not found.\n")
-                continue
+                print("Flight number cannot be empty.\n"); continue
+            flight_rows = self.db.query("SELECT flightID FROM Flight WHERE flightNo = ?;", (flight_no,))
+            if not flight_rows:
+                print(f"Flight '{flight_no}' not found.\n"); continue
+            flight_id = flight_rows[0]["flightID"]
             break
 
         # validate role
         valid_roles = ("Captain", "Co-Captain")
         while True:
             role = (Utils.input_or_blank("Role [Captain/Co-Captain] (default Captain): ") or "Captain").title()
-            if role not in valid_roles:
-                print("Role must be 'Captain' or 'Co-Captain'. Please try again.\n")
-                continue
-            break
+            if role in valid_roles:
+                break
+            print("Role must be 'Captain' or 'Co-Captain'. Please try again.\n")
 
-        # confirm before assignment
-        print("\nYou are about to assign:")
-        print(f"  Pilot: {pilot_name} (ID: {pilot_id})")
-        print(f"  Flight: {flight_no}")
-        print(f"  Role: {role}")
-        print("\n")
-        confirm = input("Confirm assignment? (Y/N): ").strip().upper()
-        if confirm != "Y":
-            print("Assignment cancelled.\n")
-            return
-        
-        # check if pilot already assigned to this flight
-        exists = self.db.query("""
-            SELECT 1 FROM FlightCrew
-            WHERE pilotID = ? AND flightID = ?;
-        """, (pilot_id, flight_id))
-
-        if exists:
-            print(f"Pilot {pilot_name} (ID: {pilot_id}) is already assigned to flight {flight_no}.\n")
+        # if pilot already assigned to this flight in ANY role, prevent double role
+        already_on_flight = self.db.query(
+            "SELECT role FROM FlightCrew WHERE pilotID = ? AND flightID = ?;",
+            (pilot_id, flight_id)
+        )
+        if already_on_flight:
+            print(f"{pilot_name} is already assigned to {flight_no} as {already_on_flight[0]['role']}.\n")
             return
 
-        try:
-            self.db.execute(
-                "INSERT INTO FlightCrew (pilotID, flightID, role, assignedAt) VALUES (?, ?, ?, datetime('now'));",
-                (pilot_id, flight_id, role),
-            )
-            print(f"Assigned pilot {pilot_name} (ID: {pilot_id}) to flight {flight_no} as {role}.\n")
-        except sqlite3.IntegrityError as e:
-            print(f"Assignment failed: {e}\n")
-            return
+        # check if this role already exist for this flight
+        existing_role = self.db.query(
+            "SELECT flightCrewID, pilotID FROM FlightCrew WHERE flightID = ? AND role = ?;",
+            (flight_id, role)
+        )
 
-        # show pilot's updated schedule
+        if existing_role:
+            current_pilot_id = existing_role[0]["pilotID"]
+            if current_pilot_id == pilot_id:
+                print(f"{pilot_name} is already the {role} for {flight_no}.\n")
+                return
+
+            # replace the current pilot in this role
+            print("\nThis flight already has a {0} assigned.".format(role))
+            # fetch current pilot name for a nicer message
+            curr = self.db.query("SELECT firstName || ' ' || lastName AS name FROM Pilot WHERE pilotID = ?;",
+                                (current_pilot_id,))
+            current_pilot_name = curr[0]["name"] if curr else f"Pilot {current_pilot_id}"
+            print(f"  Current {role}: {current_pilot_name} (ID: {current_pilot_id})")
+            print(f"  New    {role}: {pilot_name} (ID: {pilot_id})")
+            while True:
+                confirm = input("Replace current assignment? (Y/N): ").strip().upper()
+                if confirm in ("Y","N"): break
+                print("Please enter Y or N.\n")
+            if confirm == "N":
+                print("Assignment cancelled.\n"); return
+
+            # UPDATE existing row
+            try:
+                self.db.execute(
+                    "UPDATE FlightCrew SET pilotID = ?, assignedAt = datetime('now') WHERE flightID = ? AND role = ?;",
+                    (pilot_id, flight_id, role)
+                )
+                print(f"Reassigned {role} on {flight_no} to {pilot_name}.\n")
+            except sqlite3.IntegrityError as e:
+                print(f"Update failed: {e}\n")
+                return
+
+        else:
+            # INSERT new role assignment
+            try:
+                self.db.execute(
+                    "INSERT INTO FlightCrew (pilotID, flightID, role, assignedAt) VALUES (?, ?, ?, datetime('now'));",
+                    (pilot_id, flight_id, role)
+                )
+                print(f"Assigned {pilot_name} to {flight_no} as {role}.\n")
+            except sqlite3.IntegrityError as e:
+                print(f"Assignment failed: {e}\n")
+                return
+
+        # show updated schedule
         self._show_pilot_schedule(pilot_id)
 
     # 5) Function to view pilot schedule
@@ -531,7 +551,6 @@ class FlightManagementApp:
                 print(f"Update failed: {e}\n")
                 return
 
-            # Show after
             updated = self.db.query("SELECT * FROM Destination WHERE destinationID = ?;", (dest_id,))
             Utils.print_rows(updated)
             return
