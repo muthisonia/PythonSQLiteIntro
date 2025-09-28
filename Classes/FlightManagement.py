@@ -16,73 +16,13 @@ class FlightManagementApp:
         self.db = DatabaseManager(DB_PATH)
         self.iata_validator = IATAValidator(Path(__file__).parent.parent / "Data" / "iataCodes.csv")
 
-    # helper to check if the flight number already exists
-    def flight_no_exists(self, flight_no: str) -> bool:
-        """Check existence check for a flight number."""
-        rows = self.db.query(
-            "SELECT 1 FROM Flight WHERE UPPER(flightNo) = UPPER(?) LIMIT 1;",
-            (flight_no.strip(),)
-        )
-        return bool(rows)
-
-    def prompt_unique_flight_no(self) -> str:
-        """Prompt until the user enters a flight number not already in the DB."""
-        while True:
-            flight_no = input("Flight number (e.g. EY999): ").strip().upper()
-            if not flight_no:
-                print("Flight number cannot be empty.\n")
-                continue
-            if self.flight_no_exists(flight_no):
-                print(f"Flight '{flight_no}' already exists. Please enter a different flight number.\n")
-                continue
-            return flight_no
-    
-    def prompt_existing_flight_no(self) -> str:
-        """Prompt until the user enters a flight number that exists in the DB."""
-        while True:
-            flight_no = input("Flight number (e.g., EY101): ").strip().upper()
-            if not flight_no:
-                print("Flight number cannot be empty.\n")
-                continue
-            exists = self.db.query("SELECT 1 FROM Flight WHERE flightNo = ?;", (flight_no,))
-            if not exists:
-                print(f"Flight '{flight_no}' not found. Please try again.\n")
-                continue
-            return flight_no
-
-
-    # helper lookup destination id by iata code
-    def get_destination_id_by_iata(self, iata):
-        if not iata: return None
-        rows = self.db.query("SELECT destinationID FROM Destination WHERE IATA = ?", (iata.upper(),))
-        return rows[0]["destinationID"] if rows else None
-
-    # helper lookup flight id by flight no
-    def get_flight_id_by_flightno(self, flight_no):
-        if not flight_no: return None
-        rows = self.db.query("SELECT flightID FROM Flight WHERE flightNo = ?", (flight_no,))
-        return rows[0]["flightID"] if rows else None
-    
-    def prompt_valid_iata(self, prompt_msg):
-        """Prompt user for a valid IATA code that exists in the Destination table."""
-        while True:
-            iata = input(prompt_msg).strip().upper()
-            if not iata:
-                print("IATA code cannot be empty.\n")
-                continue
-
-            dest_id = self.get_destination_id_by_iata(iata)
-            if dest_id is None:
-                print(f"'{iata}' not found in Destination table. Please try again.\n")
-                continue
-            return iata
 
     # 1) Function to add a new flight
     def add_new_flight(self):
         Utils.header("Add a New Flight")
 
         #  flight no
-        flight_no = self.prompt_unique_flight_no()
+        flight_no = Utils.prompt_unique_flight_no(self.db)
 
         # origin iata
         origin_iata = self.iata_validator.prompt_valid_iata("Origin IATA: ")
@@ -96,8 +36,8 @@ class FlightManagementApp:
             break
 
         # Look up their corresponding IDs in the Destination table
-        origin_id = self.get_destination_id_by_iata(origin_iata)
-        dest_id   = self.get_destination_id_by_iata(dest_iata)
+        origin_id = Utils.get_destination_id_by_iata(self.db, origin_iata)
+        dest_id   = Utils.get_destination_id_by_iata(self.db, dest_iata)
 
         # departure and arrival
         departure = Utils.prompt_valid_datetime("Departure (YYYY-MM-DD HH:MM): ")
@@ -562,7 +502,7 @@ class FlightManagementApp:
         Utils.header("Check Bookings for a Flight")
 
         #  flight no
-        flight_no = self.prompt_existing_flight_no()
+        flight_no = Utils.prompt_existing_flight_no(self.db)
 
         # get flight details
         flight = self.db.query(dedent("""

@@ -56,26 +56,6 @@ class Utils:
         except ValueError:
             return None
         
-    @staticmethod
-    def prompt_valid_datetime(prompt_msg: str) -> str:
-        """
-        Prompt the user until they enter a valid datetime 
-        in format YYYY-MM-DD HH:MM (24-hour time).
-        """
-        while True:
-            user_input = input(prompt_msg).strip()
-            try:
-                dt = datetime.strptime(user_input, "%Y-%m-%d %H:%M")
-
-                if dt < datetime.now():
-                    print("The date/time cannot be in the past.\n")
-                    continue
-
-                return dt.strftime("%Y-%m-%d %H:%M")  # normalized string
-
-            except ValueError:
-                print("Invalid format. Please use 'YYYY-MM-DD HH:MM'. Example: 2025-10-01 08:30\n")
-
 
     @staticmethod
     def prompt_valid_date(prompt_msg: str) -> str:
@@ -140,5 +120,52 @@ class Utils:
                 return s_norm
             print("Invalid status. Choose: Scheduled, Delayed, or Cancelled.\n")
 
-    
+    @staticmethod
+    def flight_no_exists(db, flight_no: str) -> bool:
+        """Check if a flight number exists in the Flight table."""
+        rows = db.query(
+            "SELECT 1 FROM Flight WHERE UPPER(flightNo) = UPPER(?) LIMIT 1;",
+            (flight_no.strip(),)
+        )
+        return bool(rows)
 
+    @staticmethod
+    def prompt_unique_flight_no(db):
+        """Prompt until the user enters a flight number not already in the DB."""
+        while True:
+            flight_no = input("Flight number (e.g. EY999): ").strip().upper()
+            if not flight_no:
+                print("Flight number cannot be empty.\n")
+                continue
+            if Utils.flight_no_exists(db, flight_no):
+                print(f"Flight '{flight_no}' already exists. Please enter a different flight number.\n")
+                continue
+            return flight_no
+    
+    @staticmethod
+    def prompt_existing_flight_no(db):
+        """Prompt until the user enters a flight number that exists in the DB."""
+        while True:
+            flight_no = input("Flight number (e.g., EY101): ").strip().upper()
+            if not flight_no:
+                print("Flight number cannot be empty.\n")
+                continue
+            exists = db.query("SELECT 1 FROM Flight WHERE flightNo = ?;", (flight_no,))
+            if not exists:
+                print(f"Flight '{flight_no}' not found. Please try again.\n")
+                continue
+            return flight_no
+
+
+    # helper lookup destination id by iata code 
+    @staticmethod
+    def get_destination_id_by_iata(db, iata: str):
+        """Return destinationID given an IATA code, or None if not found."""
+        if not iata:
+            return None
+        rows = db.query(
+            "SELECT destinationID FROM Destination WHERE IATA = ?;",
+            (iata.upper(),)
+        )
+        return rows[0]["destinationID"] if rows else None
+    
