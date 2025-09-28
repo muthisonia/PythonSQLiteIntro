@@ -11,8 +11,8 @@ cursor = conn.cursor()
 # Enable foreign key constraints
 cursor.execute("PRAGMA foreign_keys = ON;")
 
-#  Retrieve all cancelled flights to Amsterdam Schiphol (AMS)
-print("\n=== Cancelled flights to Amsterdam Schiphol (AMS) ===")
+#  Retrieve all cancelled flights to Atlanta (ATL)
+print("\n=== Cancelled flights to Atlanta (ATL) ===")
 cursor.execute("""
 SELECT 
   f.flightNo, f.status, f.departure, f.arrival,
@@ -20,7 +20,7 @@ SELECT
 FROM Flight AS f
 JOIN Destination AS d_from ON f.originID = d_from.destinationID
 JOIN Destination AS d_to   ON f.destinationID = d_to.destinationID
-WHERE d_to.IATA = 'AMS'
+WHERE d_to.IATA = 'ATL'
   AND f.status = 'Cancelled'
 ORDER BY f.departure;
 """)

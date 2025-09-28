@@ -12,15 +12,15 @@ cursor = conn.cursor()
 cursor.execute("PRAGMA foreign_keys = ON;")
 
 # Before update
-print("\n=== Before Update: Destination 11 ===")
+print("\n=== Before Update: Destination 51 ===")
 cursor.execute("""
 SELECT destinationID, IATA, airportName, city, country, isActive
 FROM Destination
-WHERE destinationID = 11;
+WHERE destinationID = 51;
 """)
 rows = cursor.fetchall()
 if not rows:
-    print("Destination 11 not found.\n")
+    print("Destination 51 not found.\n")
 else:
     cols = [d[0] for d in cursor.description]
     print(" | ".join(cols))
@@ -29,25 +29,25 @@ else:
         print(" | ".join(str(x) for x in r))
 
 # Update destination
-print("\nUpdating Destination 11: set isActive = 1...")
+print("\nUpdating Destination 51: set isActive = 1...")
 cursor.execute("""
 UPDATE Destination
 SET isActive    = 1
-WHERE destinationID = 11;
+WHERE destinationID = 51;
 """)
 conn.commit()
 
 
 # After
-print("=== After Update: Destination 11 ===")
+print("=== After Update: Destination 51 ===")
 cursor.execute("""
 SELECT destinationID, IATA, airportName, city, country, isActive
 FROM Destination
-WHERE destinationID = 11;
+WHERE destinationID = 51;
 """)
 rows = cursor.fetchall()
 if not rows:
-    print("Destination 11 not found.\n")
+    print("Destination 51 not found.\n")
 else:
     cols = [d[0] for d in cursor.description]
     print(" | ".join(cols))
